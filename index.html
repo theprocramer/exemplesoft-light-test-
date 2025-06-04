@@ -1,0 +1,84 @@
+<script> 
+  const fs = require("fs");
+
+// === Tokenizer ===
+function tokenize(input) {
+  return input
+    .replace(/\n/g, " ")
+    .match(/"(.*?)"|let|if|else|print|\d+|[a-zA-Z_]\w*|==|!=|<=|>=|[+\-*/=<>{}();]/g);
+}
+
+// === Parser ===
+function parse(tokens) {
+  let i = 0;
+  function walk() {
+    let token = tokens[i];
+    if (token === "print") {
+      i++;
+      if (tokens[i++] !== "(") throw "print səhv: '(' gözlənilir";
+      const value = tokens[i++];
+      if (tokens[i++] !== ")") throw "print səhv: ')' gözlənilir";
+      if (tokens[i++] !== ";") throw "print səhv: ';' gözlənilir";
+      return { type: "Print", value: value.replace(/^"|"$/g, "") };
+    }
+    if (token === "let") {
+      i++;
+      const name = tokens[i++];
+      if (tokens[i++] !== "=") throw "'=' gözlənilir";
+      const value = tokens[i++];
+      if (tokens[i++] !== ";") throw "';' gözlənilir";
+      return { type: "Let", name, value: parseInt(value) };
+    }
+    if (token === "if") {
+      i++;
+      if (tokens[i++] !== "(") throw "'(' gözlənilir";
+      const varName = tokens[i++];
+      const operator = tokens[i++];
+      const right = tokens[i++];
+      if (tokens[i++] !== ")") throw "')' gözlənilir";
+      if (tokens[i++] !== "{") throw "'{' gözlənilir";
+      const body = [];
+      while (tokens[i] !== "}") body.push(walk());
+      i++; // keç '}'
+      return { type: "If", varName, operator, right: parseInt(right), body };
+    }
+    throw "Naməlum token: " + token;
+  }
+  const ast = [];
+  while (i < tokens.length) ast.push(walk());
+  return ast;
+}
+
+// === Interpreter ===
+function run(ast, env = {}) {
+  for (const node of ast) {
+    if (node.type === "Print") {
+      console.log(node.value);
+    } else if (node.type === "Let") {
+      env[node.name] = node.value;
+    } else if (node.type === "If") {
+      const left = env[node.varName];
+      const right = node.right;
+      let ok = false;
+      if (node.operator === ">") ok = left > right;
+      if (node.operator === "<") ok = left < right;
+      if (node.operator === "==") ok = left == right;
+      if (ok) run(node.body, env);
+    }
+  }
+}
+
+// === MAIN ===
+
+const filename = "main.els";
+
+try {
+  const code = fs.readFileSync(filename, "utf-8");
+  const tokens = tokenize(code);
+  const ast = parse(tokens);
+  run(ast);
+} catch (e) {
+  console.error("Xəta:", e);
+}
+  
+</script>
