@@ -2,15 +2,23 @@
 <html lang="az">
 <head>
 <meta charset="UTF-8" />
-<title>ELS Interpreter with fetch</title>
+<title>ELS Interpreter with Button</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  #output { white-space: pre-wrap; margin-bottom: 20px; }
+</style>
 </head>
 <body>
-<h1>ELS Dilinin İcraatı (GitHub Pages ilə .els faylı fetch)</h1>
+
+<h1>ELS Interpreter - Button funksiyası əlavə edildi</h1>
 
 <pre id="output"></pre>
+<div id="buttons"></div>
 
 <script>
 const outputEl = document.getElementById("output");
+const buttonsEl = document.getElementById("buttons");
+
 function printOutput(text) {
   outputEl.textContent += text + "\n";
 }
@@ -18,13 +26,14 @@ function printOutput(text) {
 function tokenize(input) {
   return input
     .replace(/\n/g, " ")
-    .match(/"(.*?)"|let|if|else|print|\d+|[a-zA-Z_]\w*|==|!=|<=|>=|[+\-*/=<>{}();]/g);
+    .match(/"(.*?)"|button|let|if|else|print|\d+|[a-zA-Z_]\w*|==|!=|<=|>=|[+\-*/=<>{}();,]/g);
 }
 
 function parse(tokens) {
   let i = 0;
   function walk() {
     let token = tokens[i];
+    
     if (token === "print") {
       i++;
       if (tokens[i++] !== "(") throw "print səhv: '(' gözlənilir";
@@ -33,6 +42,7 @@ function parse(tokens) {
       if (tokens[i++] !== ";") throw "print səhv: ';' gözlənilir";
       return { type: "Print", value: value.replace(/^"|"$/g, "") };
     }
+    
     if (token === "let") {
       i++;
       const name = tokens[i++];
@@ -41,6 +51,7 @@ function parse(tokens) {
       if (tokens[i++] !== ";") throw "';' gözlənilir";
       return { type: "Let", name, value: parseInt(value) };
     }
+    
     if (token === "if") {
       i++;
       if (tokens[i++] !== "(") throw "'(' gözlənilir";
@@ -54,8 +65,34 @@ function parse(tokens) {
       i++;
       return { type: "If", varName, operator, right: parseInt(right), body };
     }
+    
+    if (token === "button") {
+      i++;
+      // button "Name", "link", "color", width, height;
+      const name = tokens[i++];
+      if (tokens[i++] !== ",") throw "button sintaksisi səhv: ',' gözlənilir";
+      const url = tokens[i++];
+      if (tokens[i++] !== ",") throw "button sintaksisi səhv: ',' gözlənilir";
+      const color = tokens[i++];
+      if (tokens[i++] !== ",") throw "button sintaksisi səhv: ',' gözlənilir";
+      const width = tokens[i++];
+      if (tokens[i++] !== ",") throw "button sintaksisi səhv: ',' gözlənilir";
+      const height = tokens[i++];
+      if (tokens[i++] !== ";") throw "button sintaksisi səhv: ';' gözlənilir";
+      
+      return {
+        type: "Button",
+        name: name.replace(/^"|"$/g, ""),
+        url: url.replace(/^"|"$/g, ""),
+        color: color.replace(/^"|"$/g, ""),
+        width: parseInt(width),
+        height: parseInt(height)
+      };
+    }
+    
     throw "Naməlum token: " + token;
   }
+  
   const ast = [];
   while (i < tokens.length) ast.push(walk());
   return ast;
@@ -75,11 +112,23 @@ function run(ast, env = {}) {
       if (node.operator === "<") ok = left < right;
       if (node.operator === "==") ok = left == right;
       if (ok) run(node.body, env);
+    } else if (node.type === "Button") {
+      const btn = document.createElement("button");
+      btn.textContent = node.name;
+      btn.style.backgroundColor = node.color;
+      btn.style.width = node.width + "px";
+      btn.style.height = node.height + "px";
+      btn.style.color = "#fff";
+      btn.style.border = "none";
+      btn.style.cursor = "pointer";
+      btn.onclick = () => window.open(node.url, "_blank");
+      buttonsEl.appendChild(btn);
+      buttonsEl.appendChild(document.createTextNode(" ")); // düymələr arası boşluq
     }
   }
 }
 
-// GitHub Pages-də main.els faylını fetch et və icra et
+// Əsas kodu fetch etmək, parse etmək və işə salmaq:
 fetch("main.els")
   .then(res => {
     if (!res.ok) throw new Error("Fayl tapılmadı: main.els");
@@ -96,5 +145,6 @@ fetch("main.els")
   })
   .catch(err => printOutput(err.message));
 </script>
+
 </body>
 </html>
