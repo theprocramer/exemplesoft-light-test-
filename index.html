@@ -2,22 +2,35 @@
 <html lang="az">
 <head>
 <meta charset="UTF-8" />
-<title>main.els</title>
+<title>ELS Interpreter with Button & Video</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
   #output { white-space: pre-wrap; margin-bottom: 20px; }
+  #buttons button {
+    margin-right: 10px;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+  }
+  video {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 20px;
+  }
 </style>
 </head>
 <body>
 
-
+<h1>ELS Interpreter - Button və Video funksiyaları</h1>
 
 <pre id="output"></pre>
 <div id="buttons"></div>
+<div id="videos"></div>
 
 <script>
 const outputEl = document.getElementById("output");
 const buttonsEl = document.getElementById("buttons");
+const videosEl = document.getElementById("videos");
 
 function printOutput(text) {
   outputEl.textContent += text + "\n";
@@ -26,7 +39,7 @@ function printOutput(text) {
 function tokenize(input) {
   return input
     .replace(/\n/g, " ")
-    .match(/"(.*?)"|button|let|if|else|print|\d+|[a-zA-Z_]\w*|==|!=|<=|>=|[+\-*/=<>{}();,]/g);
+    .match(/"(.*?)"|button|video|let|if|else|print|\d+|true|false|[a-zA-Z_]\w*|==|!=|<=|>=|[+\-*/=<>{}();,]/g);
 }
 
 function parse(tokens) {
@@ -90,6 +103,30 @@ function parse(tokens) {
       };
     }
     
+    if (token === "video") {
+      i++;
+      // video "file.mp4", width, height, controls, autoplay;
+      const src = tokens[i++];
+      if (tokens[i++] !== ",") throw "video sintaksisi səhv: ',' gözlənilir";
+      const width = tokens[i++];
+      if (tokens[i++] !== ",") throw "video sintaksisi səhv: ',' gözlənilir";
+      const height = tokens[i++];
+      if (tokens[i++] !== ",") throw "video sintaksisi səhv: ',' gözlənilir";
+      const controls = tokens[i++];
+      if (tokens[i++] !== ",") throw "video sintaksisi səhv: ',' gözlənilir";
+      const autoplay = tokens[i++];
+      if (tokens[i++] !== ";") throw "video sintaksisi səhv: ';' gözlənilir";
+      
+      return {
+        type: "Video",
+        src: src.replace(/^"|"$/g, ""),
+        width: parseInt(width),
+        height: parseInt(height),
+        controls: controls === "true",
+        autoplay: autoplay === "true"
+      };
+    }
+    
     throw "Naməlum token: " + token;
   }
   
@@ -124,6 +161,17 @@ function run(ast, env = {}) {
       btn.onclick = () => window.open(node.url, "_blank");
       buttonsEl.appendChild(btn);
       buttonsEl.appendChild(document.createTextNode(" ")); // düymələr arası boşluq
+    } else if (node.type === "Video") {
+      const video = document.createElement("video");
+      video.src = node.src;
+      video.width = node.width;
+      video.height = node.height;
+      if (node.controls) video.controls = true;
+      if (node.autoplay) {
+        video.autoplay = true;
+        video.muted = true;  // autoplay işləməsi üçün bəzi brauzerlərdə səs susdurulmalıdır
+      }
+      videosEl.appendChild(video);
     }
   }
 }
