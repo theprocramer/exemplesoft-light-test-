@@ -2,4 +2,7 @@ let x = 10;
 print("Proqram başladı");
 if (x > 5) {
     print("x böyükdür 5-dən");
-}
+print("Düymə nümunəsi işləyir");
+button "Google", "https://google.com", "#4285F4", 120, 40;
+button "GitHub", "https://github.com", "#24292e", 100, 40;
+
