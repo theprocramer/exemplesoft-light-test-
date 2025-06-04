@@ -1,14 +1,26 @@
-<script> 
-  const fs = require("fs");
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8" />
+<title>ELS Interpreter with fetch</title>
+</head>
+<body>
+<h1>ELS Dilinin İcraatı (GitHub Pages ilə .els faylı fetch)</h1>
 
-// === Tokenizer ===
+<pre id="output"></pre>
+
+<script>
+const outputEl = document.getElementById("output");
+function printOutput(text) {
+  outputEl.textContent += text + "\n";
+}
+
 function tokenize(input) {
   return input
     .replace(/\n/g, " ")
     .match(/"(.*?)"|let|if|else|print|\d+|[a-zA-Z_]\w*|==|!=|<=|>=|[+\-*/=<>{}();]/g);
 }
 
-// === Parser ===
 function parse(tokens) {
   let i = 0;
   function walk() {
@@ -39,7 +51,7 @@ function parse(tokens) {
       if (tokens[i++] !== "{") throw "'{' gözlənilir";
       const body = [];
       while (tokens[i] !== "}") body.push(walk());
-      i++; // keç '}'
+      i++;
       return { type: "If", varName, operator, right: parseInt(right), body };
     }
     throw "Naməlum token: " + token;
@@ -49,11 +61,10 @@ function parse(tokens) {
   return ast;
 }
 
-// === Interpreter ===
 function run(ast, env = {}) {
   for (const node of ast) {
     if (node.type === "Print") {
-      console.log(node.value);
+      printOutput(node.value);
     } else if (node.type === "Let") {
       env[node.name] = node.value;
     } else if (node.type === "If") {
@@ -68,17 +79,22 @@ function run(ast, env = {}) {
   }
 }
 
-// === MAIN ===
-
-const filename = "main.els";
-
-try {
-  const code = fs.readFileSync(filename, "utf-8");
-  const tokens = tokenize(code);
-  const ast = parse(tokens);
-  run(ast);
-} catch (e) {
-  console.error("Xəta:", e);
-}
-  
+// GitHub Pages-də main.els faylını fetch et və icra et
+fetch("main.els")
+  .then(res => {
+    if (!res.ok) throw new Error("Fayl tapılmadı: main.els");
+    return res.text();
+  })
+  .then(code => {
+    try {
+      const tokens = tokenize(code);
+      const ast = parse(tokens);
+      run(ast);
+    } catch(e) {
+      printOutput("Xəta: " + e);
+    }
+  })
+  .catch(err => printOutput(err.message));
 </script>
+</body>
+</html>
