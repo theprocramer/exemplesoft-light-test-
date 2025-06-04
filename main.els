@@ -1,4 +1,4 @@
 button "Google", "https://google.com", "#4285F4", 120, 40;
 button "GitHub", "https://github.com", "#24292e", 100, 40;
 button "exemplesoft", "https://exemplesoft.pages.dev", "#00AAFF", 150, 40;
-video "sample-video.mp4", 640, 360, true, false;
+video "sample-video.mp4", 640, 360, true, true;
