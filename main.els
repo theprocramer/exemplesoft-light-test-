@@ -1,3 +1,5 @@
+let x = 10;
 print("Proqram başladı");
-print("x böyükdür 5-dən");
-
+if (x > 5) {
+    print("x böyükdür 5-dən");
+}
