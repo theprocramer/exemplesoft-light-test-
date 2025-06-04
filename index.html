@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>ELS Interpreter</title>
+  <title>ELS Language</title>
 </head>
 <body>
   <script>
@@ -16,7 +16,7 @@
 
         if (token === "print") {
           const msg = tokens[i++];
-          if (tokens[i++] !== ";") throw "Syntax error: expected ';'";
+          if (tokens[i++] !== ";") throw new Error("print üçün ';' gözlənilir");
           return { type: "Print", value: msg.replace(/^"|"$/g, "") };
         }
 
@@ -26,13 +26,14 @@
           const color = tokens[i++];
           const width = parseInt(tokens[i++]);
           const height = parseInt(tokens[i++]);
-          if (tokens[i++] !== ";") throw "Syntax error in button";
+          if (tokens[i++] !== ";") throw new Error("button üçün ';' gözlənilir");
           return {
             type: "Button",
             text: text.replace(/^"|"$/g, ""),
             link: link.replace(/^"|"$/g, ""),
             color: color.replace(/^"|"$/g, ""),
-            width, height
+            width,
+            height
           };
         }
 
@@ -42,17 +43,20 @@
           const height = parseInt(tokens[i++]);
           const controls = tokens[i++] === "true";
           const autoplay = tokens[i++] === "true";
-          if (tokens[i++] !== ";") throw "Syntax error in video";
+          if (tokens[i++] !== ";") throw new Error("video üçün ';' gözlənilir");
           return {
             type: "Video",
             src: src.replace(/^"|"$/g, ""),
-            width, height, controls, autoplay
+            width,
+            height,
+            controls,
+            autoplay
           };
         }
 
         if (token === "bgcolor") {
           const color = tokens[i++];
-          if (tokens[i++] !== ";") throw "Syntax error in bgcolor";
+          if (tokens[i++] !== ";") throw new Error("bgcolor üçün ';' gözlənilir");
           return {
             type: "BgColor",
             color: color.replace(/^"|"$/g, "")
@@ -61,21 +65,20 @@
 
         if (token === "bgimage") {
           const url = tokens[i++];
-          if (tokens[i++] !== ";") throw "Syntax error in bgimage";
+          if (tokens[i++] !== ";") throw new Error("bgimage üçün ';' gözlənilir");
           return {
             type: "BgImage",
             url: url.replace(/^"|"$/g, "")
           };
         }
 
-        return null;
+        throw new Error("Naməlum sintaksis: " + token);
       }
 
       function parse() {
         const nodes = [];
         while (i < tokens.length) {
-          const node = walk();
-          if (node) nodes.push(node);
+          nodes.push(walk());
         }
         return nodes;
       }
@@ -118,4 +121,3 @@
   </script>
 </body>
 </html>
-
