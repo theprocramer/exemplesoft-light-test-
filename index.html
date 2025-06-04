@@ -1,198 +1,120 @@
 <!DOCTYPE html>
-<html lang="az">
+<html>
 <head>
-<meta charset="UTF-8" />
-<title>ELS Interpreter with Button & Video</title>
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  #output { white-space: pre-wrap; margin-bottom: 20px; }
-  #buttons button {
-    margin-right: 10px;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-  }
-  video {
-    display: block;
-    margin-top: 15px;
-    margin-bottom: 20px;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>ELS Interpreter</title>
 </head>
 <body>
+  <script>
+    async function runELS(filename = "main.els") {
+      const code = await fetch(filename).then(r => r.text());
+      const tokens = code.match(/"(?:\\.|[^"\\])*"|[^\s]+/g) || [];
+      let i = 0;
 
-<h1>ELS Interpreter - Button və Video funksiyaları</h1>
+      function walk() {
+        const token = tokens[i++];
 
-<pre id="output"></pre>
-<div id="buttons"></div>
-<div id="videos"></div>
+        if (token === "print") {
+          const msg = tokens[i++];
+          if (tokens[i++] !== ";") throw "Syntax error: expected ';'";
+          return { type: "Print", value: msg.replace(/^"|"$/g, "") };
+        }
 
-<script>
-const outputEl = document.getElementById("output");
-const buttonsEl = document.getElementById("buttons");
-const videosEl = document.getElementById("videos");
+        if (token === "button") {
+          const text = tokens[i++];
+          const link = tokens[i++];
+          const color = tokens[i++];
+          const width = parseInt(tokens[i++]);
+          const height = parseInt(tokens[i++]);
+          if (tokens[i++] !== ";") throw "Syntax error in button";
+          return {
+            type: "Button",
+            text: text.replace(/^"|"$/g, ""),
+            link: link.replace(/^"|"$/g, ""),
+            color: color.replace(/^"|"$/g, ""),
+            width, height
+          };
+        }
 
-function printOutput(text) {
-  outputEl.textContent += text + "\n";
-}
+        if (token === "video") {
+          const src = tokens[i++];
+          const width = parseInt(tokens[i++]);
+          const height = parseInt(tokens[i++]);
+          const controls = tokens[i++] === "true";
+          const autoplay = tokens[i++] === "true";
+          if (tokens[i++] !== ";") throw "Syntax error in video";
+          return {
+            type: "Video",
+            src: src.replace(/^"|"$/g, ""),
+            width, height, controls, autoplay
+          };
+        }
 
-function tokenize(input) {
-  return input
-    .replace(/\n/g, " ")
-    .match(/"(.*?)"|button|video|let|if|else|print|\d+|true|false|[a-zA-Z_]\w*|==|!=|<=|>=|[+\-*/=<>{}();,]/g);
-}
+        if (token === "bgcolor") {
+          const color = tokens[i++];
+          if (tokens[i++] !== ";") throw "Syntax error in bgcolor";
+          return {
+            type: "BgColor",
+            color: color.replace(/^"|"$/g, "")
+          };
+        }
 
-function parse(tokens) {
-  let i = 0;
-  function walk() {
-    let token = tokens[i];
-    
-    if (token === "print") {
-      i++;
-      if (tokens[i++] !== "(") throw "print səhv: '(' gözlənilir";
-      const value = tokens[i++];
-      if (tokens[i++] !== ")") throw "print səhv: ')' gözlənilir";
-      if (tokens[i++] !== ";") throw "print səhv: ';' gözlənilir";
-      return { type: "Print", value: value.replace(/^"|"$/g, "") };
-    }
-    
-    if (token === "let") {
-      i++;
-      const name = tokens[i++];
-      if (tokens[i++] !== "=") throw "'=' gözlənilir";
-      const value = tokens[i++];
-      if (tokens[i++] !== ";") throw "';' gözlənilir";
-      return { type: "Let", name, value: parseInt(value) };
-    }
-    
-    if (token === "if") {
-      i++;
-      if (tokens[i++] !== "(") throw "'(' gözlənilir";
-      const varName = tokens[i++];
-      const operator = tokens[i++];
-      const right = tokens[i++];
-      if (tokens[i++] !== ")") throw "')' gözlənilir";
-      if (tokens[i++] !== "{") throw "'{' gözlənilir";
-      const body = [];
-      while (tokens[i] !== "}") body.push(walk());
-      i++;
-      return { type: "If", varName, operator, right: parseInt(right), body };
-    }
-    
-    if (token === "button") {
-      i++;
-      // button "Name", "link", "color", width, height;
-      const name = tokens[i++];
-      if (tokens[i++] !== ",") throw "button sintaksisi səhv: ',' gözlənilir";
-      const url = tokens[i++];
-      if (tokens[i++] !== ",") throw "button sintaksisi səhv: ',' gözlənilir";
-      const color = tokens[i++];
-      if (tokens[i++] !== ",") throw "button sintaksisi səhv: ',' gözlənilir";
-      const width = tokens[i++];
-      if (tokens[i++] !== ",") throw "button sintaksisi səhv: ',' gözlənilir";
-      const height = tokens[i++];
-      if (tokens[i++] !== ";") throw "button sintaksisi səhv: ';' gözlənilir";
-      
-      return {
-        type: "Button",
-        name: name.replace(/^"|"$/g, ""),
-        url: url.replace(/^"|"$/g, ""),
-        color: color.replace(/^"|"$/g, ""),
-        width: parseInt(width),
-        height: parseInt(height)
-      };
-    }
-    
-    if (token === "video") {
-      i++;
-      // video "file.mp4", width, height, controls, autoplay;
-      const src = tokens[i++];
-      if (tokens[i++] !== ",") throw "video sintaksisi səhv: ',' gözlənilir";
-      const width = tokens[i++];
-      if (tokens[i++] !== ",") throw "video sintaksisi səhv: ',' gözlənilir";
-      const height = tokens[i++];
-      if (tokens[i++] !== ",") throw "video sintaksisi səhv: ',' gözlənilir";
-      const controls = tokens[i++];
-      if (tokens[i++] !== ",") throw "video sintaksisi səhv: ',' gözlənilir";
-      const autoplay = tokens[i++];
-      if (tokens[i++] !== ";") throw "video sintaksisi səhv: ';' gözlənilir";
-      
-      return {
-        type: "Video",
-        src: src.replace(/^"|"$/g, ""),
-        width: parseInt(width),
-        height: parseInt(height),
-        controls: controls === "true",
-        autoplay: autoplay === "true"
-      };
-    }
-    
-    throw "Naməlum token: " + token;
-  }
-  
-  const ast = [];
-  while (i < tokens.length) ast.push(walk());
-  return ast;
-}
+        if (token === "bgimage") {
+          const url = tokens[i++];
+          if (tokens[i++] !== ";") throw "Syntax error in bgimage";
+          return {
+            type: "BgImage",
+            url: url.replace(/^"|"$/g, "")
+          };
+        }
 
-function run(ast, env = {}) {
-  for (const node of ast) {
-    if (node.type === "Print") {
-      printOutput(node.value);
-    } else if (node.type === "Let") {
-      env[node.name] = node.value;
-    } else if (node.type === "If") {
-      const left = env[node.varName];
-      const right = node.right;
-      let ok = false;
-      if (node.operator === ">") ok = left > right;
-      if (node.operator === "<") ok = left < right;
-      if (node.operator === "==") ok = left == right;
-      if (ok) run(node.body, env);
-    } else if (node.type === "Button") {
-      const btn = document.createElement("button");
-      btn.textContent = node.name;
-      btn.style.backgroundColor = node.color;
-      btn.style.width = node.width + "px";
-      btn.style.height = node.height + "px";
-      btn.style.color = "#fff";
-      btn.style.border = "none";
-      btn.style.cursor = "pointer";
-      btn.onclick = () => window.open(node.url, "_blank");
-      buttonsEl.appendChild(btn);
-      buttonsEl.appendChild(document.createTextNode(" ")); // düymələr arası boşluq
-    } else if (node.type === "Video") {
-      const video = document.createElement("video");
-      video.src = node.src;
-      video.width = node.width;
-      video.height = node.height;
-      if (node.controls) video.controls = true;
-      if (node.autoplay) {
-        video.autoplay = true;
-        video.muted = true;  // autoplay işləməsi üçün bəzi brauzerlərdə səs susdurulmalıdır
+        return null;
       }
-      videosEl.appendChild(video);
-    }
-  }
-}
 
-// Əsas kodu fetch etmək, parse etmək və işə salmaq:
-fetch("main.els")
-  .then(res => {
-    if (!res.ok) throw new Error("Fayl tapılmadı: main.els");
-    return res.text();
-  })
-  .then(code => {
-    try {
-      const tokens = tokenize(code);
-      const ast = parse(tokens);
-      run(ast);
-    } catch(e) {
-      printOutput("Xəta: " + e);
-    }
-  })
-  .catch(err => printOutput(err.message));
-</script>
+      function parse() {
+        const nodes = [];
+        while (i < tokens.length) {
+          const node = walk();
+          if (node) nodes.push(node);
+        }
+        return nodes;
+      }
 
+      const ast = parse();
+
+      for (const node of ast) {
+        if (node.type === "Print") {
+          const p = document.createElement("p");
+          p.textContent = node.value;
+          document.body.appendChild(p);
+        } else if (node.type === "Button") {
+          const btn = document.createElement("button");
+          btn.textContent = node.text;
+          btn.style.backgroundColor = node.color;
+          btn.style.width = node.width + "px";
+          btn.style.height = node.height + "px";
+          btn.onclick = () => window.open(node.link, "_blank");
+          document.body.appendChild(btn);
+        } else if (node.type === "Video") {
+          const video = document.createElement("video");
+          video.src = node.src;
+          video.width = node.width;
+          video.height = node.height;
+          video.controls = node.controls;
+          video.autoplay = node.autoplay;
+          document.body.appendChild(video);
+        } else if (node.type === "BgColor") {
+          document.body.style.backgroundColor = node.color;
+        } else if (node.type === "BgImage") {
+          document.body.style.backgroundImage = `url('${node.url}')`;
+          document.body.style.backgroundSize = "cover";
+          document.body.style.backgroundPosition = "center";
+          document.body.style.backgroundRepeat = "no-repeat";
+        }
+      }
+    }
+
+    runELS();
+  </script>
 </body>
 </html>
